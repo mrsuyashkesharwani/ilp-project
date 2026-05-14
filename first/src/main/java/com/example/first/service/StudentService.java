@@ -1,9 +1,6 @@
 package com.example.first.service;
 
-import com.example.first.Dto.ExpanseDto;
-import com.example.first.Dto.UserDto;
-import com.example.first.Dto.studentDto;
-import com.example.first.Dto.createStudentDto;
+import com.example.first.Dto.*;
 import com.example.first.entity.*;
 
 import com.example.first.repo.*;
@@ -78,27 +75,27 @@ public class StudentService {
     }
 
 
-    public void createExpanse( ExpanseDto ex) throws Exception {
-        User us = userRepo.findById(ex.getUserid())
+    public ExpanseDto createExpanse( ExpanseDto ex) throws Exception {
+        User us = userRepo.findById(ex.getUserId())
                 .orElseThrow(() -> new Exception("User not found"));
 
         Expense expense = new Expense();
 
-        expense.setAmount(ex.getAmount());
         expense.setTitle(ex.getTitle());
+        expense.setAmount(ex.getAmount());
+        expense.setCategory(ex.getCategory());
+        expense.setExpenseDate(ex.getExpenseDate());
 
         expense.setUsertemp(us);
 
-        expanseRepo.save(expense);
+        Expense savedExpense =expanseRepo.save(expense);
 
-        List<Expense> ans= new ArrayList<>();
-        ans = us.getExpenses();
-
-        for (Expense an : ans) {
-            System.out.println(an.getTitle());
-
-
-        }
+        return new ExpanseDto(savedExpense.getExpenseId(),
+                savedExpense.getTitle(),
+                savedExpense.getAmount(),
+                savedExpense.getCategory(),
+                savedExpense.getExpenseDate(),
+                savedExpense.getUsertemp().getUserId());
 
 
 
@@ -110,18 +107,43 @@ public class StudentService {
 
 
 
-public void Inverstment( ExpanseDto ex) throws Exception {
-    User us = userRepo.findById(ex.getUserid())
+public InvestmentDto Inverstment(InvestmentDto ex) throws Exception {
+    User us = userRepo.findById(ex.getUserId())
             .orElseThrow(() -> new Exception("User not found"));
-
-    Investment inv  = new Investment();
-   inv.setInvestedAmount((double)2000);
-   inv.setStockName("book");
+    Investment inv = new Investment();
+    inv.setStockName(ex.getStockName());
+    inv.setInvestedAmount(ex.getInvestedAmount());
+    inv.setQuantity(ex.getQuantity());
+    inv.setRiskPercent(ex.getRiskPercent());
+    inv.setInvestmentDate(ex.getInvestmentDate());
 
     inv.setUsertemp(us);
 
-      investmentRepo.save(inv);
+    Investment savedInvestment = investmentRepo.save(inv);
+    ExpanseDto expanseDto =new ExpanseDto();
+    expanseDto.setTitle("Buy Stock " + ex.getStockName());
+    expanseDto.setAmount(ex.getInvestedAmount());
+    expanseDto.setCategory("Stock_Credited");
+    expanseDto.setUserId(ex.getUserId());
+    expanseDto.setExpenseDate(ex.getInvestmentDate());
 
+    createExpanse(expanseDto);
+
+
+
+
+
+
+
+
+    return new InvestmentDto(
+            savedInvestment.getStockName(),
+            savedInvestment.getInvestedAmount(),
+            savedInvestment.getQuantity(),
+            savedInvestment.getRiskPercent(),
+            savedInvestment.getInvestmentDate(),
+            savedInvestment.getUsertemp().getUserId()
+    );
 
 
 

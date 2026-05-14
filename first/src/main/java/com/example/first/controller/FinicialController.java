@@ -1,10 +1,7 @@
 package com.example.first.controller;
 
 
-import com.example.first.Dto.ExpanseDto;
-import com.example.first.Dto.UserDto;
-import com.example.first.Dto.createStudentDto;
-import com.example.first.Dto.studentDto;
+import com.example.first.Dto.*;
 import com.example.first.entity.Expense;
 import com.example.first.service.StudentService;
 import lombok.Builder;
@@ -28,15 +25,15 @@ public class FinicialController {
     }
 
     @PostMapping("/Expanse")
-    public void createStudent(@RequestBody ExpanseDto ex) throws Exception {
-        studentService.createExpanse(ex);
+    public ExpanseDto createStudent(@RequestBody ExpanseDto ex) throws Exception {
+        return studentService.createExpanse(ex);
 
 
     }
 
     @PostMapping("/investment")
-    public void investment (@RequestBody ExpanseDto ex) throws Exception {
-        studentService.Inverstment(ex);
+    public InvestmentDto investment (@RequestBody InvestmentDto ex) throws Exception {
+        return studentService.Inverstment(ex);
 
 
     }
@@ -46,7 +43,23 @@ public class FinicialController {
         studentService.StockAdd(ex);
 
 
+    } 
+    
+    @PostMapping("/buyStock")
+    public void BuyStock (@RequestBody ExpanseDto ex) throws Exception {
+
+
+
     }
+    @PatchMapping("/sellStock")
+    public void sellStock (@RequestBody ExpanseDto ex) throws Exception {
+
+
+
+    }
+
+
+
 
 
 

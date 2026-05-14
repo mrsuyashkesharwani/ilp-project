@@ -4,6 +4,8 @@ package com.example.first.Dto;
 import com.example.first.entity.User;
 import lombok.*;
 
+import java.time.LocalDate;
+
 @Data
 @Getter
 @Setter
@@ -13,8 +15,17 @@ public class ExpanseDto {
 
 
 
+    private Long expenseId;
+
     private String title;
-    private double amount;
-     private Long userid;
+
+    private Double amount;
+
+    private String category;
+
+    private LocalDate expenseDate;
+
+    // User id for relation
+    private Long userId;
 
 }

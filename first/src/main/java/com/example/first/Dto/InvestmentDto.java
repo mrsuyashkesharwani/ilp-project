@@ -1,6 +1,4 @@
-package com.example.first.entity;
-
-import jakarta.persistence.*;
+package com.example.first.Dto;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -8,18 +6,12 @@ import lombok.Setter;
 
 import java.time.LocalDate;
 
-
-@Entity
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+public class InvestmentDto {
 
-public class Investment {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long investmentId;
 
     private String stockName;
 
@@ -29,14 +21,9 @@ public class Investment {
 
     private Double riskPercent;
 
-
-
     private LocalDate investmentDate;
 
-    // ================= RELATION =================
-
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User usertemp;
+    // User relation id
+    private Long userId;
 
 }
