@@ -24,6 +24,13 @@ public class FinicialController {
 
     }
 
+    @PostMapping("/login")
+    public LoginResponseDto login(@RequestBody LoginDto dto) {
+
+        return studentService.loginUser(dto);
+    }
+
+
     @PostMapping("/Expanse")
     public ExpanseDto createStudent(@RequestBody ExpanseDto ex) throws Exception {
         return studentService.createExpanse(ex);
@@ -57,6 +64,8 @@ public class FinicialController {
 
 
     }
+
+
 
 
 

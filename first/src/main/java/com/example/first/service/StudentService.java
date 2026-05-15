@@ -8,10 +8,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 
 @RequiredArgsConstructor
@@ -74,6 +72,37 @@ public class StudentService {
         return new UserDto(user.getName(), user.getEmail(), user.getPassword());
     }
 
+    public LoginResponseDto loginUser(LoginDto dto) {
+
+        User user = userRepo.findByEmail(dto.getEmail());
+
+        if (user == null) {
+
+            return new LoginResponseDto(
+                    false,
+                    null,
+                    null,
+                    "Email not found"
+            );
+        }
+
+        if (!user.getPassword().equals(dto.getPassword())) {
+
+            return new LoginResponseDto(
+                    false,
+                    user.getUserId(),
+                    user.getName(),
+                    "Wrong password"
+            );
+        }
+       return new LoginResponseDto(
+               true,
+               user.getUserId(),
+               user.getName(),
+               "Login Successful"
+       );
+
+    }
 
     public ExpanseDto createExpanse( ExpanseDto ex) throws Exception {
         User us = userRepo.findById(ex.getUserId())
@@ -128,13 +157,6 @@ public InvestmentDto Inverstment(InvestmentDto ex) throws Exception {
     expanseDto.setExpenseDate(ex.getInvestmentDate());
 
     createExpanse(expanseDto);
-
-
-
-
-
-
-
 
     return new InvestmentDto(
             savedInvestment.getStockName(),
