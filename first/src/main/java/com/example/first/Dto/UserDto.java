@@ -1,5 +1,6 @@
 package com.example.first.Dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -11,8 +12,7 @@ public class UserDto {
 
     private String name;
     private String email;
-    private String  password;
 
-
-
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
+    private String password;
 }

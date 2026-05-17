@@ -1,7 +1,7 @@
 package com.example.first.Dto;
 
 
-import com.example.first.entity.User;
+import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -23,6 +23,7 @@ public class ExpanseDto {
 
     private String category;
 
+    @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expenseDate;
 
     // User id for relation

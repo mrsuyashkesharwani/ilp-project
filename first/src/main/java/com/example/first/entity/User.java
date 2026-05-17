@@ -5,6 +5,7 @@ package com.example.first.entity;
 
 
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -34,15 +35,25 @@ public class User {
 
     // ================= RELATION =================
 
-    @OneToMany(mappedBy = "usertemp", cascade = CascadeType.ALL)
+    @JsonIgnore
+    @OneToMany(mappedBy = "usertemp", cascade = CascadeType.ALL,
+               fetch = FetchType.EAGER, orphanRemoval = true)
     private List<Expense> expenses = new ArrayList<>();
 
+    @JsonIgnore
+    @OneToMany(mappedBy = "usertemp", cascade = CascadeType.ALL,
+               fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<Investment> investments = new ArrayList<>();
 
-    @OneToMany(mappedBy = "usertemp", cascade = CascadeType.ALL)
-    private List<Investment> investments;
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL,
+               fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<Gold> goldHoldings = new ArrayList<>();
 
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-//    private List<Goal> goals;
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL,
+               fetch = FetchType.EAGER, orphanRemoval = true)
+    private List<Goal> goals = new ArrayList<>();
 //
 //    @OneToOne(mappedBy = "user", cascade = CascadeType.ALL)
 //    private FinancialProfile financialProfile;
