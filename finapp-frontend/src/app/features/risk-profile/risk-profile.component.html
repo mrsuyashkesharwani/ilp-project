@@ -1,0 +1,74 @@
+<div class="page-content">
+  <div class="row-2">
+    <!-- Quiz -->
+    <div class="card" *ngIf="!showResult()">
+      <div class="card-title">Risk assessment quiz</div>
+      <p class="mb-20">Answer all questions to determine your risk profile.</p>
+
+      <div *ngFor="let q of questions; let i = index" class="quiz-question mb-20">
+        <div class="q-text">{{ i + 1 }}. {{ q.q }}</div>
+        <div class="q-options">
+          <label *ngFor="let opt of q.options; let j = index" class="q-option"
+                 [class.selected]="selectedAnswers[i] === q.scores[j]">
+            <input type="radio" [name]="'q' + i" [value]="q.scores[j]"
+                   [(ngModel)]="selectedAnswers[i]">
+            {{ opt }}
+          </label>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" [disabled]="!allAnswered" (click)="submit()">
+        <i class="ti ti-check"></i> See my risk profile
+      </button>
+    </div>
+
+    <!-- Result -->
+    <div class="card result-card" *ngIf="showResult()">
+      <div class="card-title">Your risk profile</div>
+      <div class="result-level">
+        <span class="risk-level-text">{{ riskLevel }}</span>
+        <span class="badge {{riskBadge}}" style="font-size:13px;padding:4px 14px;">{{ riskLevel }}</span>
+      </div>
+
+      <div class="risk-segmented-bar mb-20">
+        <div class="seg low">Low</div>
+        <div class="seg medium">Moderate</div>
+        <div class="seg high">High</div>
+      </div>
+
+      <div class="alert" [class.alert-success]="riskLevel === 'Conservative'"
+                         [class.alert-warn]="riskLevel === 'Moderate'"
+                         [class.alert-danger]="riskLevel === 'Aggressive'">
+        <i class="ti" [class.ti-shield]="riskLevel === 'Conservative'"
+                      [class.ti-shield-half]="riskLevel === 'Moderate'"
+                      [class.ti-flame]="riskLevel === 'Aggressive'"></i>
+        <span *ngIf="riskLevel === 'Conservative'">Suitable for debt funds, FDs and bonds with stable returns.</span>
+        <span *ngIf="riskLevel === 'Moderate'">Mix of equity and debt — balanced mutual funds work well.</span>
+        <span *ngIf="riskLevel === 'Aggressive'">High equity allocation — stocks and growth funds align with your profile.</span>
+      </div>
+
+      <button class="btn btn-outline btn-sm" (click)="reset()">
+        <i class="ti ti-refresh"></i> Retake quiz
+      </button>
+    </div>
+
+    <!-- Current profile info card -->
+    <div class="card">
+      <div class="card-title">Current profile summary</div>
+      <div class="profile-stats">
+        <div class="stat-row">
+          <span>Equity allocation</span><span class="badge badge-blue">65%</span>
+        </div>
+        <div class="stat-row">
+          <span>Debt allocation</span><span class="badge badge-green">25%</span>
+        </div>
+        <div class="stat-row">
+          <span>Gold / Other</span><span class="badge badge-amber">10%</span>
+        </div>
+        <div class="stat-row">
+          <span>Overall risk score</span><span class="badge badge-warn">Moderate</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

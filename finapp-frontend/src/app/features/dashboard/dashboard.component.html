@@ -1,0 +1,185 @@
+<div class="page-content">
+
+  <!-- Loading state -->
+  <div *ngIf="loading()" class="empty-state">
+    <i class="ti ti-loader" aria-hidden="true"></i>
+    <p>Loading your financial data...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error()" class="alert alert-danger mb-14">
+    <i class="ti ti-alert-circle" aria-hidden="true"></i>
+    {{ error() }}
+  </div>
+
+  <div *ngIf="!loading()">
+
+    <!-- Overspending alert -->
+    <div *ngIf="isOverSpending" class="alert alert-warn mb-14">
+      <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+      Spending alert: Expenses are {{ expenseRatio }}% of your income. Consider reducing discretionary spend.
+    </div>
+
+    <!-- Metric cards -->
+    <div class="row-4 mb-14">
+      <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-wallet" aria-hidden="true"></i> Total balance</div>
+        <div class="metric-value" [ngClass]="totalBalance >= 0 ? 'blue' : 'red'">{{ totalBalance | inr }}</div>
+        <div class="metric-sub">Income minus expenses &amp; investments</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-arrow-down" aria-hidden="true"></i> Total income</div>
+        <div class="metric-value green">{{ totalIncome | inr }}</div>
+        <div class="metric-sub">All income entries</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-arrow-up" aria-hidden="true"></i> Total expenses</div>
+        <div class="metric-value red">{{ totalExpenses | inr }}</div>
+        <div class="metric-sub">{{ expenseRatio }}% of income</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label"><i class="ti ti-trending-up" aria-hidden="true"></i> Total invested</div>
+        <div class="metric-value amber">{{ totalInvested | inr }}</div>
+        <div class="metric-sub">Stocks &amp; investments</div>
+      </div>
+    </div>
+
+    <!-- Charts + Recent transactions -->
+    <div class="row-2 mb-14">
+
+      <!-- Monthly expenses bar chart -->
+      <div class="card">
+        <div class="card-title">Monthly expenses</div>
+        <div class="bar-chart-wrap">
+          <div class="bar-chart">
+            <div class="bar-col" *ngFor="let m of monthlyChartData">
+              <div class="bar-col-fill"
+                   [style.height.%]="m.heightPct || 2"
+                   [style.background]="m.heightPct === 100 ? '#378ADD' : '#B5D4F4'">
+              </div>
+              <span class="bar-col-label">{{ m.label }}</span>
+              <span class="bar-col-amount">{{ m.amount | inr }}</span>
+            </div>
+          </div>
+          <div *ngIf="expenses.length === 0" class="empty-state" style="padding: 20px 0">
+            <i class="ti ti-chart-bar" aria-hidden="true"></i>
+            <p>No expense data yet. Add entries to see your chart.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent transactions -->
+      <div class="card">
+        <div class="card-title">
+          Recent transactions
+          <a routerLink="/app/records" style="font-size:11px;color:#378ADD;font-weight:400">View all</a>
+        </div>
+        <div *ngIf="recentTransactions.length === 0" class="empty-state" style="padding: 16px 0">
+          <i class="ti ti-receipt" aria-hidden="true"></i>
+          <p>No transactions yet</p>
+        </div>
+        <div class="recent-tx" *ngFor="let tx of recentTransactions">
+          <div class="tx-left">
+            <span class="badge" [ngClass]="isIncome(tx) ? 'badge-income' : 'badge-expense'">
+              {{ isIncome(tx) ? 'Income' : 'Expense' }}
+            </span>
+            <span class="tx-title">{{ tx.title }}</span>
+          </div>
+          <div class="tx-right">
+            <span [style.color]="isIncome(tx) ? '#3B6D11' : '#A32D2D'" style="font-weight:500">
+              {{ isIncome(tx) ? '+' : '-' }}{{ tx.amount | inr }}
+            </span>
+            <span class="tx-date">{{ tx.expenseDate }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Health row -->
+    <div class="row-3 mb-14">
+
+      <!-- Wellness score -->
+      <div class="card" style="text-align:center;cursor:pointer" routerLink="/app/wellness">
+        <div class="card-title" style="justify-content:center">Wellness score</div>
+        <div style="font-size:42px;font-weight:500;margin:8px 0"
+             [style.color]="wellnessScore >= 71 ? '#3B6D11' : wellnessScore >= 41 ? '#854F0B' : '#A32D2D'">
+          {{ wellnessScore }}
+        </div>
+        <div style="font-size:12px;color:#6B7280;margin-bottom:8px">out of 100</div>
+        <span class="badge" [ngClass]="wellnessBadgeClass">{{ wellnessCategory }}</span>
+        <div class="progress-wrap" style="margin-top:12px">
+          <div class="progress-bg">
+            <div class="progress-fill"
+                 [ngClass]="wellnessScore >= 71 ? 'green' : wellnessScore >= 41 ? 'amber' : 'red'"
+                 [style.width.%]="wellnessScore">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Risk profile -->
+      <div class="card" style="cursor:pointer" routerLink="/app/risk">
+        <div class="card-title">Risk profile</div>
+        <div style="font-size:24px;font-weight:500;margin:8px 0;text-align:center"
+             [style.color]="riskLevel === 'Low' ? '#3B6D11' : riskLevel === 'Medium' ? '#854F0B' : '#A32D2D'">
+          {{ riskLevel }}
+        </div>
+        <div style="font-size:12px;color:#6B7280;text-align:center;margin-bottom:10px">
+          Based on {{ investments.length }} investment(s)
+        </div>
+        <div class="risk-segmented-bar">
+          <div class="seg low"    [style.font-weight]="riskLevel==='Low'    ? '700' : '400'">Low</div>
+          <div class="seg medium" [style.font-weight]="riskLevel==='Medium' ? '700' : '400'">Medium</div>
+          <div class="seg high"   [style.font-weight]="riskLevel==='High'   ? '700' : '400'">High</div>
+        </div>
+      </div>
+
+      <!-- Net position -->
+      <div class="card" style="cursor:pointer" routerLink="/app/expenses">
+        <div class="card-title">Net position</div>
+        <div style="font-size:28px;font-weight:500;margin:8px 0;text-align:center"
+             [style.color]="netPosition >= 0 ? '#3B6D11' : '#A32D2D'">
+          {{ netPosition >= 0 ? '+' : '' }}{{ netPosition | inr }}
+        </div>
+        <div style="font-size:12px;color:#6B7280;text-align:center">
+          Income minus expenses
+        </div>
+        <div style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="color:#6B7280">Income</span>
+            <span style="color:#3B6D11;font-weight:500">{{ totalIncome | inr }}</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:#6B7280">Expenses</span>
+            <span style="color:#A32D2D;font-weight:500">{{ totalExpenses | inr }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Quick actions -->
+    <div class="card">
+      <div class="card-title">Quick actions</div>
+      <div class="flex-row" style="flex-wrap:wrap;gap:8px">
+        <button class="btn btn-primary btn-sm" routerLink="/app/expenses">
+          <i class="ti ti-plus" aria-hidden="true"></i> Add expense
+        </button>
+        <button class="btn btn-primary btn-sm" routerLink="/app/expenses">
+          <i class="ti ti-plus" aria-hidden="true"></i> Add income
+        </button>
+        <button class="btn btn-outline btn-sm" routerLink="/app/stocks">
+          <i class="ti ti-trending-up" aria-hidden="true"></i> Manage stocks
+        </button>
+        <button class="btn btn-outline btn-sm" routerLink="/app/records">
+          <i class="ti ti-list" aria-hidden="true"></i> View all records
+        </button>
+        <button class="btn btn-outline btn-sm" routerLink="/app/portfolio">
+          <i class="ti ti-briefcase" aria-hidden="true"></i> Portfolio
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

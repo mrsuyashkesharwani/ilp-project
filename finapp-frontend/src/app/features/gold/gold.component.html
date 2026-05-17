@@ -1,0 +1,124 @@
+<div class="page-content">
+  <!-- Delete confirmation overlay -->
+  <div class="modal-backdrop" *ngIf="confirmDeleteId() !== null">
+    <div class="modal-box">
+      <p>Remove this gold entry?</p>
+      <div class="modal-actions">
+        <button class="btn btn-danger" (click)="doConfirmDelete()">Delete</button>
+        <button class="btn btn-secondary" (click)="cancelDelete()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="toast()" class="alert mb-14"
+       [class.alert-success]="toast()!.type === 'ok'" [class.alert-danger]="toast()!.type === 'err'">
+    <i class="ti" [class.ti-check]="toast()!.type === 'ok'" [class.ti-alert-circle]="toast()!.type === 'err'"></i>
+    {{ toast()!.msg }}
+  </div>
+
+  <div class="row-4 mb-20">
+    <app-metric-card label="Total Gold (g)"   [value]="metricTotalGrams" icon="ti-coin"        colorClass="amber" [isCurrency]="false" />
+    <app-metric-card label="Amount Invested"  [value]="metricInvested"   icon="ti-coins"        colorClass="blue" />
+    <app-metric-card label="Current Value"    [value]="metricCurrent"    icon="ti-chart-bar"    colorClass="teal" />
+    <app-metric-card label="Total P&L"        [value]="metricPnL"        icon="ti-trending-up"  [colorClass]="metricPnL >= 0 ? 'green' : 'red'" />
+  </div>
+
+  <div class="row-2">
+    <!-- Left: Add form -->
+    <div class="card">
+      <div class="card-title">Add gold holding</div>
+      <form [formGroup]="form" (ngSubmit)="onSave()">
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Type</label>
+            <select formControlName="type">
+              <option *ngFor="let t of goldTypes" [value]="t">{{ t }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Quantity (grams)</label>
+            <input type="number" formControlName="quantityGrams" step="0.1" min="0.1">
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Purchase price/g (₹)</label>
+            <input type="number" formControlName="purchasePricePerGram" min="1">
+          </div>
+          <div class="form-group">
+            <label>Current price/g (₹)</label>
+            <input type="number" formControlName="currentPricePerGram" min="1">
+          </div>
+        </div>
+        <div class="form-row-2">
+          <div class="form-group">
+            <label>Purchase date</label>
+            <input type="date" formControlName="purchaseDate">
+          </div>
+          <div class="form-group">
+            <label>Storage type</label>
+            <select formControlName="storageType">
+              <option *ngFor="let s of storageTypes" [value]="s">{{ s }}</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Notes (optional)</label>
+          <textarea formControlName="notes" placeholder="Any notes…"></textarea>
+        </div>
+
+        <!-- Auto-calculated preview -->
+        <div class="calc-preview" *ngIf="qty > 0 && bPrice > 0">
+          <div class="calc-row"><span>Total investment</span><span>{{ totalInvestmentPreview | inr }}</span></div>
+          <div class="calc-row"><span>Current value</span><span>{{ currentValuePreview | inr }}</span></div>
+          <div class="calc-row" [style.color]="pnlPreview >= 0 ? '#3B6D11' : '#A32D2D'">
+            <span>P&L</span><span>{{ pnlPreview >= 0 ? '+' : '' }}{{ pnlPreview | inr }} ({{ pnlPctPreview | number:'1.1-1' }}%)</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" [disabled]="form.invalid || saving()">
+          <i class="ti ti-device-floppy"></i> {{ saving() ? 'Saving…' : 'Save' }}
+        </button>
+      </form>
+    </div>
+
+    <!-- Right: Holdings table -->
+    <div class="card">
+      <div class="card-title">Holdings</div>
+      <div *ngIf="loading()" class="loading-state">Loading…</div>
+      <div class="table-wrap" *ngIf="!loading()">
+        <table class="data-table" *ngIf="holdings().length > 0; else noGold">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Qty (g)</th>
+              <th>Invested</th>
+              <th>Current</th>
+              <th>P&L%</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let h of holdings()">
+              <td><span class="badge badge-amber">{{ h.type }}</span></td>
+              <td>{{ h.quantityGrams }}</td>
+              <td>{{ h.totalInvestment | inr }}</td>
+              <td>{{ h.currentValue | inr }}</td>
+              <td [style.color]="(h.profitLossPct ?? 0) >= 0 ? '#3B6D11' : '#A32D2D'">
+                {{ h.profitLossPct | number:'1.1-1' }}%
+              </td>
+              <td>
+                <button class="btn-icon btn-icon-danger" (click)="askDelete(h.goldId!)" title="Delete">
+                  <i class="ti ti-trash"></i>
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <ng-template #noGold>
+          <app-empty-state icon="ti-coin" message="No gold holdings yet." />
+        </ng-template>
+      </div>
+    </div>
+  </div>
+</div>

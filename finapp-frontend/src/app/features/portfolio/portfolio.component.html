@@ -1,0 +1,131 @@
+<div class="page-content">
+
+  <div *ngIf="error()" class="alert alert-danger mb-14">
+    <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ error() }}
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading()" class="empty-state">
+    <i class="ti ti-loader" aria-hidden="true"></i>
+    <p>Loading portfolio...</p>
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!loading() && investments().length === 0" class="empty-state">
+    <i class="ti ti-briefcase" aria-hidden="true"></i>
+    <p>No investments found. Add stocks or investments to see your portfolio.</p>
+    <a routerLink="/app/stocks" class="btn btn-primary btn-sm" style="margin-top:12px">
+      <i class="ti ti-plus" aria-hidden="true"></i> Add investment
+    </a>
+  </div>
+
+  <!-- Portfolio content -->
+  <div *ngIf="!loading() && investments().length > 0">
+
+    <!-- Metric cards -->
+    <div class="row-3 mb-14">
+      <div class="metric-card">
+        <div class="metric-label">Total invested</div>
+        <div class="metric-value blue">{{ totalInvested | inr }}</div>
+        <div class="metric-sub">{{ investments().length }} investment entries</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Total units held</div>
+        <div class="metric-value">{{ totalQuantity }}</div>
+        <div class="metric-sub">Across {{ breakdown.length }} stock(s)</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Avg portfolio risk</div>
+        <div class="metric-value"
+             [ngClass]="avgRisk < 8 ? 'green' : avgRisk < 12 ? 'amber' : 'red'">
+          {{ avgRisk }}%
+        </div>
+      </div>
+    </div>
+
+    <div class="row-2 mb-14">
+
+      <!-- Portfolio distribution -->
+      <div class="card">
+        <div class="card-title">Portfolio distribution</div>
+        <div *ngFor="let item of breakdown" style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px">
+            <span style="font-weight:500">{{ item.name }}</span>
+            <span style="color:#6B7280">{{ item.totalInvested | inr }} ({{ getDistributionPct(item.totalInvested) }}%)</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bg">
+              <div class="progress-fill blue" [style.width.%]="getDistributionPct(item.totalInvested)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Holdings breakdown table -->
+      <div class="card">
+        <div class="card-title">Holdings breakdown</div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Stock</th>
+                <th style="width:60px">Units</th>
+                <th style="width:100px">Invested</th>
+                <th style="width:70px">Risk%</th>
+                <th style="width:60px">Share</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of breakdown">
+                <td style="font-weight:500">{{ item.name }}</td>
+                <td>{{ item.quantity }}</td>
+                <td style="color:#185FA5;font-weight:500">{{ item.totalInvested | inr }}</td>
+                <td>
+                  <span class="badge"
+                    [ngClass]="item.riskPercent < 8 ? 'badge-green' : item.riskPercent < 12 ? 'badge-amber' : 'badge-red'">
+                    {{ item.riskPercent }}%
+                  </span>
+                </td>
+                <td style="color:#6B7280">{{ getDistributionPct(item.totalInvested) }}%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- All investment entries -->
+    <div class="card">
+      <div class="card-title">All investment entries ({{ investments().length }})</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Stock name</th>
+              <th style="width:60px">Qty</th>
+              <th style="width:110px">Invested</th>
+              <th style="width:70px">Risk %</th>
+              <th style="width:100px">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let inv of investments()">
+              <td style="font-weight:500">{{ inv.stockName }}</td>
+              <td>{{ inv.quantity }}</td>
+              <td style="color:#185FA5;font-weight:500">{{ inv.investedAmount | inr }}</td>
+              <td>
+                <span class="badge"
+                  [ngClass]="inv.riskPercent < 8 ? 'badge-green' : inv.riskPercent < 12 ? 'badge-amber' : 'badge-red'">
+                  {{ inv.riskPercent }}%
+                </span>
+              </td>
+              <td style="color:#9CA3AF">{{ inv.investmentDate }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>

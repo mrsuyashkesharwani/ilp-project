@@ -1,0 +1,268 @@
+<div class="page-content">
+
+  <!-- ── Sell dialog ─────────────────────────────── -->
+  <div *ngIf="sellDialog()"
+       style="position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:50;
+              display:flex;align-items:center;justify-content:center;padding:16px">
+    <div class="card" style="max-width:380px;width:100%">
+      <div class="card-title">
+        Sell {{ sellDialog()!.stockName }}
+        <span style="font-size:11px;color:#6B7280;font-weight:400">
+          Max: {{ sellDialog()!.maxQty }} units
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label>Quantity to sell *</label>
+        <input type="number"
+               [value]="sellDialog()!.sellQty"
+               (input)="setSellQty(+$any($event.target).value)"
+               [max]="sellDialog()!.maxQty"
+               min="1" />
+        <span class="form-error"
+              *ngIf="sellDialog()!.sellQty > sellDialog()!.maxQty">
+          Cannot exceed {{ sellDialog()!.maxQty }} units.
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label>Sell price per unit (₹) *</label>
+        <input type="number"
+               [value]="sellDialog()!.sellPrice"
+               (input)="setSellPrice(+$any($event.target).value)"
+               min="1"
+               placeholder="e.g. 1750" />
+      </div>
+
+      <div *ngIf="sellDialog()!.sellQty > 0 && sellDialog()!.sellPrice > 0"
+           style="background:#EAF3DE;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:#3B6D11">Total sale proceeds</span>
+          <span style="font-weight:600;color:#3B6D11;font-size:14px">{{ sellTotal | inr }}</span>
+        </div>
+        <div style="color:#6B7280;font-size:11px">
+          This amount will be auto-added to your Records as "Stock_Sale" income.
+        </div>
+      </div>
+
+      <div *ngIf="sellDialog()!.sellQty === sellDialog()!.maxQty"
+           class="alert alert-warn" style="margin-bottom:12px">
+        <i class="ti ti-alert-triangle" aria-hidden="true"></i>
+        Selling all units will remove this stock from your portfolio.
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline btn-sm" (click)="closeSellDialog()">Cancel</button>
+        <button class="btn btn-danger btn-sm"
+                [disabled]="sellSaving() || sellDialog()!.sellQty <= 0 ||
+                            sellDialog()!.sellQty > sellDialog()!.maxQty ||
+                            sellDialog()!.sellPrice <= 0"
+                (click)="confirmSell()">
+          {{ sellSaving() ? 'Processing...' : 'Confirm sell' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Buy more dialog ─────────────────────────── -->
+  <div *ngIf="buyDialog()"
+       style="position:fixed;inset:0;background:rgba(0,0,0,0.35);z-index:50;
+              display:flex;align-items:center;justify-content:center;padding:16px">
+    <div class="card" style="max-width:380px;width:100%">
+      <div class="card-title">
+        Buy more {{ buyDialog()!.stockName }}
+        <span style="font-size:11px;color:#6B7280;font-weight:400">
+          Current: {{ buyDialog()!.currentQty }} units
+        </span>
+      </div>
+
+      <div class="form-group">
+        <label>Additional quantity *</label>
+        <input type="number"
+               [value]="buyDialog()!.buyQty"
+               (input)="setBuyQty(+$any($event.target).value)"
+               min="1"
+               placeholder="e.g. 5" />
+      </div>
+
+      <div class="form-group">
+        <label>Price per unit (₹) *</label>
+        <input type="number"
+               [value]="buyDialog()!.pricePerUnit"
+               (input)="setBuyPrice(+$any($event.target).value)"
+               min="1"
+               placeholder="e.g. 1650" />
+      </div>
+
+      <div class="form-group">
+        <label>Purchase date *</label>
+        <input type="date"
+               [value]="buyDialog()!.purchaseDate"
+               (input)="setBuyDate($any($event.target).value)" />
+      </div>
+
+      <div *ngIf="buyDialog()!.buyQty > 0 && buyDialog()!.pricePerUnit > 0"
+           style="background:#E6F1FB;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+          <span style="color:#185FA5">Total cost</span>
+          <span style="font-weight:600;color:#185FA5;font-size:14px">{{ buyTotal | inr }}</span>
+        </div>
+        <div style="color:#6B7280;font-size:11px">
+          New total: {{ buyDialog()!.currentQty + buyDialog()!.buyQty }} units.
+          A "Stock_Buy" record will be auto-created.
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-outline btn-sm" (click)="closeBuyDialog()">Cancel</button>
+        <button class="btn btn-primary btn-sm"
+                [disabled]="buySaving() || buyDialog()!.buyQty <= 0 || buyDialog()!.pricePerUnit <= 0"
+                (click)="confirmBuy()">
+          {{ buySaving() ? 'Processing...' : 'Confirm buy' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Alerts ───────────────────────────────────── -->
+  <div *ngIf="success()" class="alert alert-success mb-14">
+    <i class="ti ti-check" aria-hidden="true"></i> {{ success() }}
+  </div>
+  <div *ngIf="error()" class="alert alert-danger mb-14">
+    <i class="ti ti-alert-circle" aria-hidden="true"></i> {{ error() }}
+  </div>
+
+  <!-- ── Metric cards ─────────────────────────────── -->
+  <div class="row-3 mb-14">
+    <div class="metric-card">
+      <div class="metric-label">Total invested</div>
+      <div class="metric-value blue">{{ totalInvested | inr }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total units held</div>
+      <div class="metric-value">{{ totalQuantity }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Avg risk %</div>
+      <div class="metric-value amber">{{ avgRisk }}%</div>
+    </div>
+  </div>
+
+  <!-- ── Add investment form ───────────────────────── -->
+  <div class="card mb-14" *ngIf="showAddForm()">
+    <div class="card-title">Add new investment</div>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()">
+      <div class="form-row-2">
+        <div class="form-group">
+          <label>Stock name / symbol *</label>
+          <input type="text" formControlName="stockName" placeholder="e.g. INFY" />
+          <span class="form-error"
+                *ngIf="form.get('stockName')?.invalid && form.get('stockName')?.touched">
+            Required.
+          </span>
+        </div>
+        <div class="form-group">
+          <label>Invested amount (₹) *</label>
+          <input type="number" formControlName="investedAmount" placeholder="e.g. 14200" />
+          <span class="form-error"
+                *ngIf="form.get('investedAmount')?.invalid && form.get('investedAmount')?.touched">
+            Enter valid amount.
+          </span>
+        </div>
+      </div>
+      <div class="form-row-3">
+        <div class="form-group">
+          <label>Quantity *</label>
+          <input type="number" formControlName="quantity" placeholder="e.g. 10" />
+        </div>
+        <div class="form-group">
+          <label>Risk % *</label>
+          <input type="number" formControlName="riskPercent"
+                 placeholder="e.g. 8.5" step="0.01" />
+        </div>
+        <div class="form-group">
+          <label>Purchase date *</label>
+          <input type="date" formControlName="investmentDate" />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button type="submit" class="btn btn-primary btn-sm" [disabled]="saving()">
+          {{ saving() ? 'Saving...' : 'Save investment' }}
+        </button>
+        <button type="button" class="btn btn-outline btn-sm" (click)="toggleAddForm()">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── Investments table ─────────────────────────── -->
+  <div class="card">
+    <div class="card-title">
+      My investments
+      <button class="btn btn-primary btn-sm" (click)="toggleAddForm()">
+        <i class="ti ti-plus" aria-hidden="true"></i>
+        {{ showAddForm() ? 'Close' : 'Add investment' }}
+      </button>
+    </div>
+
+    <div *ngIf="loading()" class="empty-state">
+      <i class="ti ti-loader" aria-hidden="true"></i>
+      <p>Loading investments...</p>
+    </div>
+
+    <div *ngIf="!loading() && investments().length === 0" class="empty-state">
+      <i class="ti ti-trending-up" aria-hidden="true"></i>
+      <p>No investments yet. Click "Add investment" to get started.</p>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading() && investments().length > 0">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Stock</th>
+            <th style="width:55px">Qty</th>
+            <th style="width:110px">Invested</th>
+            <th style="width:70px">Risk%</th>
+            <th style="width:100px">Date</th>
+            <th style="width:180px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let inv of investments()">
+            <td style="font-weight:500">{{ inv.stockName }}</td>
+            <td>{{ inv.quantity }}</td>
+            <td style="color:#185FA5;font-weight:500">{{ inv.investedAmount | inr }}</td>
+            <td>
+              <span class="badge"
+                [ngClass]="inv.riskPercent<8 ? 'badge-green' :
+                           inv.riskPercent<12 ? 'badge-amber' : 'badge-red'">
+                {{ inv.riskPercent }}%
+              </span>
+            </td>
+            <td style="color:#9CA3AF">{{ inv.investmentDate }}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:6px">
+                <button class="btn btn-primary btn-sm"
+                        style="padding:4px 10px;font-size:11px"
+                        (click)="openBuyDialog(inv)"
+                        title="Buy more {{ inv.stockName }}">
+                  <i class="ti ti-plus" aria-hidden="true"></i> Buy
+                </button>
+                <button class="btn btn-sm"
+                        style="padding:4px 10px;font-size:11px;
+                               background:#FCEBEB;color:#A32D2D;
+                               border:1px solid rgba(226,75,74,0.25)"
+                        (click)="openSellDialog(inv)"
+                        title="Sell {{ inv.stockName }}">
+                  <i class="ti ti-arrow-up" aria-hidden="true"></i> Sell
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
