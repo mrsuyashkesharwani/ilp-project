@@ -2,18 +2,17 @@ package com.example.first.service;
 
 import com.example.first.Dto.*;
 import com.example.first.entity.*;
-
 import com.example.first.repo.*;
+import com.example.first.security.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 
 import com.example.first.entity.Expense;
 import com.example.first.entity.Investment;
 import java.util.List;
 import java.util.Map;
-
 
 @RequiredArgsConstructor
 @Service
@@ -22,10 +21,12 @@ public class StudentService {
     public final StudentRepo studentRepo;
     public final UserRepo userRepo;
     public final ExpenseRepo expanseRepo;
-    public  final InvestmentRepo investmentRepo;
+    public final InvestmentRepo investmentRepo;
     public final StockRepo stockRepo;
     public final GoldRepo goldRepo;
     public final GoalRepo goalRepo;
+    private final JwtService jwtService;
+    private final PasswordEncoder passwordEncoder;
 
     public List<studentDto> getAllStudent() {
         List<studentEntity> list = studentRepo.findAll();
@@ -45,7 +46,6 @@ public class StudentService {
         return new studentDto(student.getId(), student.getName(), student.getEmail());
     }
 
-
     public studentDto updatedStudent(Long id, Map<String, Object> updates) {
         studentEntity student = studentRepo.findById(id).orElseThrow(() -> new IllegalArgumentException("Student not found"));
 
@@ -60,59 +60,53 @@ public class StudentService {
                 default:
                     throw new IllegalArgumentException("Field are not exist");
             }
-
         });
 
         studentEntity saveStudent = studentRepo.save(student);
         return new studentDto(saveStudent.getId(), saveStudent.getName(), saveStudent.getEmail());
-
     }
 
     @Transactional
-    public UserDto createdNewUser(UserDto addStudent) {
+    public UserDto createdNewUser(UserDto addUser) {
         User newUser = new User();
-        newUser.setName(addStudent.getName());
-        newUser.setPassword(addStudent.getPassword());
-        newUser.setEmail(addStudent.getEmail());
+        newUser.setName(addUser.getName());
+        newUser.setEmail(addUser.getEmail());
+        newUser.setMobileNo(addUser.getMobileNo());
+        newUser.setPassword(passwordEncoder.encode(addUser.getPassword()));
+        newUser.setRole("USER");
         User user = userRepo.save(newUser);
-        return new UserDto(user.getName(), user.getEmail(), null);
+        return new UserDto(user.getName(), user.getEmail(), user.getMobileNo(), null);
     }
 
     @Transactional
     public LoginResponseDto loginUser(LoginDto dto) {
-
         User user = userRepo.findByEmail(dto.getEmail());
 
         if (user == null) {
-
-            return new LoginResponseDto(
-                    false,
-                    null,
-                    null,
-                    "Email not found"
-            );
+            return new LoginResponseDto(false, null, null, "Email not found", null, null);
         }
 
-        if (user.getPassword() == null || !user.getPassword().equals(dto.getPassword())) {
-
-            return new LoginResponseDto(
-                    false,
-                    user.getUserId(),
-                    user.getName(),
-                    "Wrong password"
-            );
+        boolean passwordMatches;
+        String stored = user.getPassword();
+        if (stored == null) {
+            passwordMatches = false;
+        } else if (stored.startsWith("$2")) {
+            passwordMatches = passwordEncoder.matches(dto.getPassword(), stored);
+        } else {
+            passwordMatches = stored.equals(dto.getPassword());
         }
-       return new LoginResponseDto(
-               true,
-               user.getUserId(),
-               user.getName(),
-               "Login Successful"
-       );
 
+        if (!passwordMatches) {
+            return new LoginResponseDto(false, user.getUserId(), user.getName(), "Wrong password", null, null);
+        }
+
+        String token = jwtService.generateToken(user.getEmail(), user.getUserId());
+        String role = user.getRole() != null ? user.getRole() : "USER";
+        return new LoginResponseDto(true, user.getUserId(), user.getName(), "Login Successful", token, role);
     }
 
     @Transactional
-    public ExpanseDto createExpanse( ExpanseDto ex) throws Exception {
+    public ExpanseDto createExpanse(ExpanseDto ex) throws Exception {
         User us = userRepo.findById(ex.getUserId())
                 .orElseThrow(() -> new Exception("User not found"));
 
@@ -125,7 +119,7 @@ public class StudentService {
 
         expense.setUsertemp(us);
 
-        Expense savedExpense =expanseRepo.save(expense);
+        Expense savedExpense = expanseRepo.save(expense);
 
         return new ExpanseDto(savedExpense.getExpenseId(),
                 savedExpense.getTitle(),
@@ -133,67 +127,48 @@ public class StudentService {
                 savedExpense.getCategory(),
                 savedExpense.getExpenseDate(),
                 savedExpense.getUsertemp().getUserId());
-
-
-
-
-  }
-
-
-
-
-
+    }
 
     @Transactional
     public InvestmentDto Inverstment(InvestmentDto ex) throws Exception {
-    User us = userRepo.findById(ex.getUserId())
-            .orElseThrow(() -> new Exception("User not found"));
-    Investment inv = new Investment();
-    inv.setStockName(ex.getStockName());
-    inv.setInvestedAmount(ex.getInvestedAmount());
-    inv.setQuantity(ex.getQuantity());
-    inv.setRiskPercent(ex.getRiskPercent());
-    inv.setInvestmentDate(ex.getInvestmentDate());
+        User us = userRepo.findById(ex.getUserId())
+                .orElseThrow(() -> new Exception("User not found"));
+        Investment inv = new Investment();
+        inv.setStockName(ex.getStockName());
+        inv.setInvestedAmount(ex.getInvestedAmount());
+        inv.setQuantity(ex.getQuantity());
+        inv.setRiskPercent(ex.getRiskPercent());
+        inv.setInvestmentDate(ex.getInvestmentDate());
 
-    inv.setUsertemp(us);
+        inv.setUsertemp(us);
 
-    Investment savedInvestment = investmentRepo.save(inv);
-    ExpanseDto expanseDto =new ExpanseDto();
-    expanseDto.setTitle("Buy Stock " + ex.getStockName());
-    expanseDto.setAmount(ex.getInvestedAmount());
-    expanseDto.setCategory("Stock_Credited");
-    expanseDto.setUserId(ex.getUserId());
-    expanseDto.setExpenseDate(ex.getInvestmentDate());
+        Investment savedInvestment = investmentRepo.save(inv);
+        ExpanseDto expanseDto = new ExpanseDto();
+        expanseDto.setTitle("Buy Stock " + ex.getStockName());
+        expanseDto.setAmount(ex.getInvestedAmount());
+        expanseDto.setCategory("Stock_Credited");
+        expanseDto.setUserId(ex.getUserId());
+        expanseDto.setExpenseDate(ex.getInvestmentDate());
 
-    createExpanse(expanseDto);
+        createExpanse(expanseDto);
 
-    return new InvestmentDto(
-            savedInvestment.getInvestmentId(),
-            savedInvestment.getStockName(),
-            savedInvestment.getInvestedAmount(),
-            savedInvestment.getQuantity(),
-            savedInvestment.getRiskPercent(),
-            savedInvestment.getInvestmentDate(),
-            savedInvestment.getUsertemp().getUserId()
-    );
+        return new InvestmentDto(
+                savedInvestment.getInvestmentId(),
+                savedInvestment.getStockName(),
+                savedInvestment.getInvestedAmount(),
+                savedInvestment.getQuantity(),
+                savedInvestment.getRiskPercent(),
+                savedInvestment.getInvestmentDate(),
+                savedInvestment.getUsertemp().getUserId()
+        );
+    }
 
-
-
-}
-    public void StockAdd( ExpanseDto ex) throws Exception {
-
-
-        Stock st  = new Stock();
-       st.setCompanyName("ABC");
-       st.setStockPrice((double)2000);
-       st.setRiskPercent(12.34);
+    public void StockAdd(ExpanseDto ex) throws Exception {
+        Stock st = new Stock();
+        st.setCompanyName("ABC");
+        st.setCurrentPrice((double) 2000);
+        st.setRiskPercent(12.34);
         stockRepo.save(st);
-
-
-
-
-
-
     }
 
     @Transactional
@@ -229,7 +204,7 @@ public class StudentService {
         return stockRepo.findAll().stream().map(s -> {
             ExpanseDto dto = new ExpanseDto();
             dto.setTitle(s.getCompanyName());
-            dto.setAmount(s.getStockPrice());
+            dto.setAmount(s.getCurrentPrice());
             dto.setCategory(String.valueOf(s.getRiskPercent()));
             return dto;
         }).toList();
@@ -286,10 +261,14 @@ public class StudentService {
 
     @Transactional
     public void deleteGold(Long goldId) throws Exception {
-        if (!goldRepo.existsById(goldId)) {
-            throw new Exception("Gold entry not found");
+        Gold gold = goldRepo.findById(goldId)
+                .orElseThrow(() -> new Exception("Gold entry not found: " + goldId));
+        User user = gold.getUser();
+        if (user != null) {
+            user.getGoldHoldings().remove(gold);
+            gold.setUser(null);
         }
-        goldRepo.deleteById(goldId);
+        goldRepo.delete(gold);
     }
 
     private GoldDto mapGoldToDto(Gold g) {
@@ -319,11 +298,11 @@ public class StudentService {
         User user = userRepo.findById(userId).orElseThrow(() -> new Exception("User not found"));
 
         double totalIncome = user.getExpenses().stream()
-                .filter(e -> List.of("Salary","Freelance","Business","Rental","Other").contains(e.getCategory()))
+                .filter(e -> List.of("Salary", "Freelance", "Business", "Rental", "Other").contains(e.getCategory()))
                 .mapToDouble(Expense::getAmount).sum();
 
         double totalExpenses = user.getExpenses().stream()
-                .filter(e -> !List.of("Salary","Freelance","Business","Rental","Other").contains(e.getCategory()))
+                .filter(e -> !List.of("Salary", "Freelance", "Business", "Rental", "Other").contains(e.getCategory()))
                 .mapToDouble(Expense::getAmount).sum();
 
         double totalInvested = user.getInvestments().stream()
@@ -520,5 +499,4 @@ public class StudentService {
                     saved.getRiskPercent(), saved.getInvestmentDate(), dto.getUserId());
         }
     }
-
 }

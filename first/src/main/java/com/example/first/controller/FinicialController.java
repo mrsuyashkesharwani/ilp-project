@@ -1,14 +1,10 @@
 package com.example.first.controller;
 
 import com.example.first.Dto.*;
-import com.example.first.entity.Expense;
 import com.example.first.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:4200")
