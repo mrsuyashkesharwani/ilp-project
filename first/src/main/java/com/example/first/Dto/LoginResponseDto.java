@@ -1,22 +1,16 @@
 package com.example.first.Dto;
 
 import lombok.AllArgsConstructor;
-import lombok.Getter;
+import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
 
-@Getter
-@Setter
-@NoArgsConstructor
+@Data
 @AllArgsConstructor
+@NoArgsConstructor
 public class LoginResponseDto {
-
     private boolean status;
-
     private Long userId;
-
     private String name;
-
     private String message;
 
     private String token;

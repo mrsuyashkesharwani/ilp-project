@@ -4,6 +4,7 @@ import com.example.first.Dto.*;
 import com.example.first.config.JwtUtil;
 import com.example.first.entity.*;
 import com.example.first.repo.*;
+import com.example.first.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
