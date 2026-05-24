@@ -1,73 +1,118 @@
-<div class="page-content">
-  <div class="row-2">
-    <!-- Quiz -->
-    <div class="card" *ngIf="!showResult()">
-      <div class="card-title">Risk assessment quiz</div>
-      <p class="mb-20">Answer all questions to determine your risk profile.</p>
+<div class="page-content animate-fade-in">
+  <div *ngIf="loading()" class="loading-state">
+    <i class="ti ti-loader spin"></i> Analyzing portfolio risk profile...
+  </div>
 
-      <div *ngFor="let q of questions; let i = index" class="quiz-question mb-20">
-        <div class="q-text">{{ i + 1 }}. {{ q.q }}</div>
-        <div class="q-options">
-          <label *ngFor="let opt of q.options; let j = index" class="q-option"
-                 [class.selected]="selectedAnswers[i] === q.scores[j]">
-            <input type="radio" [name]="'q' + i" [value]="q.scores[j]"
-                   [(ngModel)]="selectedAnswers[i]">
-            {{ opt }}
-          </label>
+  <div *ngIf="error()" class="alert alert-danger mb-14">
+    <i class="ti ti-alert-circle"></i> {{ error() }}
+  </div>
+
+  <div class="row-2" *ngIf="!loading() && profileData()">
+    <!-- Left Column: Risk Gauge & Asset Allocation -->
+    <div class="card flex-column">
+      <div class="card-title">Portfolio Risk Profile</div>
+      <p class="card-subtitle mb-20">Real-time analysis computed from your stocks, gold holdings, and liquidity.</p>
+
+      <div class="risk-meter-container mb-24">
+        <div class="risk-gauge">
+          <div class="risk-gauge-fill" [style.transform]="'rotate(' + (profileData()!.portfolioRiskPct * 18) + 'deg)'"></div>
+          <div class="risk-gauge-cover">
+            <span class="risk-pct-val">{{ profileData()!.portfolioRiskPct }}%</span>
+            <span class="risk-pct-lbl">Risk Factor</span>
+          </div>
+        </div>
+        
+        <div class="risk-badge-wrap mt-14">
+          <span class="badge {{ riskBadgeClass }} premium-badge">{{ profileData()!.riskLevel }} Risk</span>
         </div>
       </div>
 
-      <button class="btn btn-primary" [disabled]="!allAnswered" (click)="submit()">
-        <i class="ti ti-check"></i> See my risk profile
-      </button>
+      <div class="risk-segmented-bar mb-24">
+        <div class="seg low" [class.active]="profileData()!.riskLevel === 'LOW'">Low</div>
+        <div class="seg medium" [class.active]="profileData()!.riskLevel === 'MEDIUM'">Moderate</div>
+        <div class="seg high" [class.active]="profileData()!.riskLevel === 'HIGH'">High</div>
+      </div>
+
+      <!-- Asset Allocation Breakdowns -->
+      <div class="allocation-section">
+        <h4 class="section-title mb-14">Asset Allocation & Exposure</h4>
+        
+        <!-- Stock -->
+        <div class="alloc-row mb-14">
+          <div class="alloc-info">
+            <span>Stocks & Equities</span>
+            <span class="alloc-val">
+              {{ profileData()!.totalStockInvested | inr }}
+              <span style="color:#94a3b8;font-weight:normal;margin-left:4px">({{ getAssetPercentage(profileData()!.totalStockInvested) }}%)</span>
+            </span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill stock-color" [style.width.%]="getAssetPercentage(profileData()!.totalStockInvested)"></div>
+          </div>
+        </div>
+
+        <!-- Gold -->
+        <div class="alloc-row mb-14">
+          <div class="alloc-info">
+            <span>Precious Metals (Gold)</span>
+            <span class="alloc-val">
+              {{ profileData()!.totalGoldInvested | inr }}
+              <span style="color:#94a3b8;font-weight:normal;margin-left:4px">({{ getAssetPercentage(profileData()!.totalGoldInvested) }}%)</span>
+            </span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill gold-color" [style.width.%]="getAssetPercentage(profileData()!.totalGoldInvested)"></div>
+          </div>
+        </div>
+
+        <!-- Cash/Wallet -->
+        <div class="alloc-row mb-14">
+          <div class="alloc-info">
+            <span>Cash (Wallet)</span>
+            <span class="alloc-val">
+              {{ profileData()!.walletBalance | inr }}
+              <span style="color:#94a3b8;font-weight:normal;margin-left:4px">({{ getAssetPercentage(profileData()!.walletBalance) }}%)</span>
+            </span>
+          </div>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill cash-color" [style.width.%]="getAssetPercentage(profileData()!.walletBalance)"></div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Result -->
-    <div class="card result-card" *ngIf="showResult()">
-      <div class="card-title">Your risk profile</div>
-      <div class="result-level">
-        <span class="risk-level-text">{{ riskLevel }}</span>
-        <span class="badge {{riskBadge}}" style="font-size:13px;padding:4px 14px;">{{ riskLevel }}</span>
+    <!-- Right Column: AI Advisors Recommendations & Active Goals -->
+    <div class="flex-column gap-20">
+      <!-- Recommendations Card -->
+      <div class="card flex-grow">
+        <div class="card-title">Advisor Recommendations</div>
+        <p class="card-subtitle mb-14">Personalized recommendations generated based on your asset ratios and stock risk profile.</p>
+
+        <div class="recommendations-list">
+          <div *ngFor="let rec of profileData()!.recommendations" class="rec-item">
+            <i class="ti ti-bulb-filled" style="color:#fbbf24;font-size:18px;margin-top:1px;flex-shrink:0"></i>
+            <div class="rec-content">
+              {{ rec }}
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="risk-segmented-bar mb-20">
-        <div class="seg low">Low</div>
-        <div class="seg medium">Moderate</div>
-        <div class="seg high">High</div>
-      </div>
-
-      <div class="alert" [class.alert-success]="riskLevel === 'Conservative'"
-                         [class.alert-warn]="riskLevel === 'Moderate'"
-                         [class.alert-danger]="riskLevel === 'Aggressive'">
-        <i class="ti" [class.ti-shield]="riskLevel === 'Conservative'"
-                      [class.ti-shield-half]="riskLevel === 'Moderate'"
-                      [class.ti-flame]="riskLevel === 'Aggressive'"></i>
-        <span *ngIf="riskLevel === 'Conservative'">Suitable for debt funds, FDs and bonds with stable returns.</span>
-        <span *ngIf="riskLevel === 'Moderate'">Mix of equity and debt — balanced mutual funds work well.</span>
-        <span *ngIf="riskLevel === 'Aggressive'">High equity allocation — stocks and growth funds align with your profile.</span>
-      </div>
-
-      <button class="btn btn-outline btn-sm" (click)="reset()">
-        <i class="ti ti-refresh"></i> Retake quiz
-      </button>
-    </div>
-
-    <!-- Current profile info card -->
-    <div class="card">
-      <div class="card-title">Current profile summary</div>
-      <div class="profile-stats">
-        <div class="stat-row">
-          <span>Equity allocation</span><span class="badge badge-blue">65%</span>
+      <!-- Active Goals & Context Card -->
+      <div class="card">
+        <div class="card-title">Financial Goals linked</div>
+        <p class="card-subtitle mb-14">Goals that are currently monitored for savings and risk balancing.</p>
+        
+        <div class="goals-tag-wrap" *ngIf="profileData()!.activeGoals.length > 0; else noGoals">
+          <div *ngFor="let goal of profileData()!.activeGoals" class="goal-tag">
+            <i class="ti ti-target"></i> {{ goal }}
+          </div>
         </div>
-        <div class="stat-row">
-          <span>Debt allocation</span><span class="badge badge-green">25%</span>
-        </div>
-        <div class="stat-row">
-          <span>Gold / Other</span><span class="badge badge-amber">10%</span>
-        </div>
-        <div class="stat-row">
-          <span>Overall risk score</span><span class="badge badge-warn">Moderate</span>
-        </div>
+        <ng-template #noGoals>
+          <div class="no-goals-msg">
+            <i class="ti ti-info-circle"></i> No active financial goals tracked. Create goals to get custom target risk pacing.
+          </div>
+        </ng-template>
       </div>
     </div>
   </div>

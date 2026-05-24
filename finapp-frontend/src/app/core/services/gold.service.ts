@@ -21,6 +21,10 @@ export class GoldService {
     return this.http.delete<void>(`${BASE}/gold/${goldId}`);
   }
 
+  getGoldMarketPrices(): Observable<any> {
+    return this.http.get<any>(`${BASE}/gold/prices`);
+  }
+
   getWellnessScore(userId: number): Observable<WellnessData> {
     return this.http.get<WellnessData>(`${BASE}/wellness/${userId}`);
   }

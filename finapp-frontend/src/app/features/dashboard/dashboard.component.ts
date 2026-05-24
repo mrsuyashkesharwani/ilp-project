@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { ExpenseService } from '../../core/services/expense.service';
 import { InvestmentService } from '../../core/services/investment.service';
+import { GoldService } from '../../core/services/gold.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ExpenseDto } from '../../core/models/expense.model';
 import { InvestmentDto } from '../../core/models/investment.model';
@@ -18,6 +19,7 @@ import { InrFormatPipe } from '../../shared/pipes/inr-format.pipe';
 export class DashboardComponent implements OnInit, OnDestroy {
   private expenseService    = inject(ExpenseService);
   private investmentService = inject(InvestmentService);
+  private goldSvc           = inject(GoldService);
   private auth              = inject(AuthService);
 
   loading = signal(true);
@@ -25,31 +27,126 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   expenses:    ExpenseDto[]    = [];
   investments: InvestmentDto[] = [];
+  wellnessData = signal<any | null>(null);
+  showAlerts   = signal(false);
+  private alertTimerId: any = null;
 
-  get totalIncome():    number { return this.expenses.filter(e => this.isIncome(e)).reduce((s, e) => s + (e.amount ?? 0), 0); }
-  get totalExpenses():  number { return this.expenses.filter(e => !this.isIncome(e)).reduce((s, e) => s + (e.amount ?? 0), 0); }
-  get totalInvested():  number { return this.investments.reduce((s, i) => s + (i.investedAmount ?? 0), 0); }
-  get totalBalance():   number { return this.totalIncome - this.totalExpenses - this.totalInvested; }
+  get totalIncome():    number { return this.wellnessData()?.totalIncome ?? this.expenses.filter(e => this.isIncome(e)).reduce((s, e) => s + (e.profit != null ? e.profit : (e.amount ?? 0)), 0); }
+  get totalExpenses():  number { return this.wellnessData()?.totalExpenses ?? this.expenses.filter(e => !this.isIncome(e)).reduce((s, e) => s + (e.amount ?? 0), 0); }
+  get totalInvested():  number { return this.wellnessData()?.totalInvested ?? this.investments.reduce((s, i) => s + (i.investedAmount ?? 0), 0); }
+  get totalBalance():   number { return this.wellnessData()?.walletBalance ?? (this.totalIncome - this.totalExpenses - this.totalInvested); }
   get netPosition():    number { return this.totalIncome - this.totalExpenses; }
   get expenseRatio():   number { return this.totalIncome > 0 ? Math.round((this.totalExpenses / this.totalIncome) * 100) : 0; }
   get isOverSpending(): boolean { return this.expenseRatio > 75; }
 
+  get activeAlerts(): { title: string; desc: string; type: 'danger' | 'warn' | 'info'; icon: string }[] {
+    if (!this.showAlerts()) return [];
+    const alerts: { title: string; desc: string; type: 'danger' | 'warn' | 'info'; icon: string }[] = [];
+    
+    let rules: any[] = [];
+    const saved = localStorage.getItem('admin_rules');
+    if (saved) {
+      try {
+        rules = JSON.parse(saved);
+      } catch (e) {
+        rules = [];
+      }
+    } else {
+      // Default fallback if not initialized
+      rules = [
+        { id: 1, name: 'High expense alert',      threshold: 75,   unit: '% of income', enabled: true },
+        { id: 2, name: 'Large transaction alert', threshold: 10000, unit: '₹',          enabled: true },
+        { id: 3, name: 'Low balance warning',     threshold: 5000,  unit: '₹',          enabled: true },
+        { id: 4, name: 'Investment target',       threshold: 20,    unit: '% of income', enabled: false },
+        { id: 5, name: 'Wellness score alert',    threshold: 50,    unit: 'score',       enabled: true }
+      ];
+    }
+    
+    const rHighExpense    = rules.find(r => r.id === 1);
+    const rLargeTx        = rules.find(r => r.id === 2);
+    const rLowBalance     = rules.find(r => r.id === 3);
+    const rInvestTarget   = rules.find(r => r.id === 4);
+    const rWellnessScore  = rules.find(r => r.id === 5);
+
+    // 1. High Expense Alert
+    if (rHighExpense && rHighExpense.enabled) {
+      if (this.expenseRatio > rHighExpense.threshold) {
+        alerts.push({
+          title: 'High Expense Ratio Alert',
+          desc: `Monthly expenses are at ${this.expenseRatio}% of income (exceeding admin limit of ${rHighExpense.threshold}%).`,
+          type: 'danger',
+          icon: 'ti-alert-triangle'
+        });
+      }
+    }
+
+    // 2. Large Transaction Alert
+    if (rLargeTx && rLargeTx.enabled) {
+      const largeTx = this.expenses
+        .filter(e => e.amount > rLargeTx.threshold)
+        .sort((a, b) => b.amount - a.amount);
+      if (largeTx.length > 0) {
+        alerts.push({
+          title: 'Large Transaction Alert',
+          desc: `Detected ${largeTx.length} single transaction(s) exceeding admin threshold of ₹${rLargeTx.threshold} (e.g. "${largeTx[0].title}" - ₹${largeTx[0].amount}).`,
+          type: 'warn',
+          icon: 'ti-receipt'
+        });
+      }
+    }
+
+    // 3. Low Balance Warning
+    if (rLowBalance && rLowBalance.enabled) {
+      if (this.totalBalance < rLowBalance.threshold) {
+        alerts.push({
+          title: 'Low Balance Warning',
+          desc: `Your current wallet balance (₹${this.totalBalance}) is below the admin warning line of ₹${rLowBalance.threshold}.`,
+          type: 'warn',
+          icon: 'ti-wallet'
+        });
+      }
+    }
+
+    // 4. Investment Target Reminder
+    if (rInvestTarget && rInvestTarget.enabled) {
+      const currentInvestPct = this.totalIncome > 0 ? (this.totalInvested / this.totalIncome) * 100 : 0;
+      if (currentInvestPct < rInvestTarget.threshold) {
+        alerts.push({
+          title: 'Investment Target Alert',
+          desc: `Your total investments are ${Math.round(currentInvestPct)}% of your income. Admin targets at least ${rInvestTarget.threshold}%.`,
+          type: 'info',
+          icon: 'ti-target'
+        });
+      }
+    }
+
+    // 5. Wellness Score Alert
+    if (rWellnessScore && rWellnessScore.enabled) {
+      if (this.wellnessScore > 0 && this.wellnessScore < rWellnessScore.threshold) {
+        alerts.push({
+          title: 'Low Wellness Score Alert',
+          desc: `Your financial wellness score is ${this.wellnessScore}/100, which is below the admin warning line of ${rWellnessScore.threshold}.`,
+          type: 'danger',
+          icon: 'ti-heart'
+        });
+      }
+    }
+
+    return alerts;
+  }
+
   get wellnessScore(): number {
-    const savingsRate     = this.totalIncome > 0 ? Math.min(100, Math.round(((this.totalIncome - this.totalExpenses) / this.totalIncome) * 100)) : 0;
-    const investmentLevel = this.totalIncome > 0 ? Math.min(100, Math.round((this.totalInvested / this.totalIncome) * 100 * 2)) : 0;
-    const expenseScore    = Math.max(0, 100 - this.expenseRatio);
-    return Math.round((savingsRate * 0.4) + (investmentLevel * 0.3) + (expenseScore * 0.3));
+    return this.wellnessData()?.score ?? 0;
   }
 
   get wellnessCategory(): string {
-    if (this.wellnessScore >= 71) return 'Good';
-    if (this.wellnessScore >= 41) return 'Average';
-    return 'Poor';
+    return this.wellnessData()?.level ?? 'Poor';
   }
 
   get wellnessBadgeClass(): string {
-    if (this.wellnessScore >= 71) return 'badge-green';
-    if (this.wellnessScore >= 41) return 'badge-amber';
+    const cat = this.wellnessCategory;
+    if (cat === 'Excellent' || cat === 'Good') return 'badge-green';
+    if (cat === 'Fair' || cat === 'Average') return 'badge-amber';
     return 'badge-red';
   }
 
@@ -57,8 +154,8 @@ export class DashboardComponent implements OnInit, OnDestroy {
     const avgRisk = this.investments.length > 0
       ? this.investments.reduce((s, i) => s + (i.riskPercent ?? 0), 0) / this.investments.length
       : 0;
-    if (avgRisk < 8)  return 'Low';
-    if (avgRisk < 12) return 'Medium';
+    if (avgRisk < 3)  return 'Low';
+    if (avgRisk < 7) return 'Medium';
     return 'High';
   }
 
@@ -96,13 +193,25 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   isIncome(e: ExpenseDto): boolean {
-    const INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Rental', 'Other'];
+    const INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Rental', 'Other', 'Stock_Sale'];
     return INCOME_CATS.includes(e.category ?? '');
+  }
+
+  startAlertTimer(): void {
+    if (this.alertTimerId) {
+      clearTimeout(this.alertTimerId);
+    }
+    this.showAlerts.set(true);
+    this.alertTimerId = setTimeout(() => {
+      this.showAlerts.set(false);
+      this.alertTimerId = null;
+    }, 10000); // Keep alerts visible for exactly 10 seconds
   }
 
   ngOnInit(): void {
     this.loading.set(true);
     this.error.set('');
+    this.showAlerts.set(false); // Hide initially until data is loaded
 
     const userId = this.auth.getCurrentUserId();
 
@@ -118,11 +227,22 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.investmentService.getInvestmentsByUser(userId).subscribe({
           next: (inv) => {
             this.investments = inv ?? [];
-            this.loading.set(false);
+            this.goldSvc.getWellnessScore(userId).subscribe({
+              next: (well) => {
+                this.wellnessData.set(well);
+                this.loading.set(false);
+                this.startAlertTimer();
+              },
+              error: () => {
+                this.loading.set(false);
+                this.startAlertTimer();
+              }
+            });
           },
           error: () => {
             this.investments = [];
             this.loading.set(false);
+            this.startAlertTimer();
           }
         });
       },
@@ -131,11 +251,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.investments = [];
         this.error.set('Could not load latest data. Showing empty state.');
         this.loading.set(false);
+        this.startAlertTimer();
       }
     });
   }
 
   ngOnDestroy(): void {
+    if (this.alertTimerId) {
+      clearTimeout(this.alertTimerId);
+      this.alertTimerId = null;
+    }
     this.loading.set(true);
     this.error.set('');
     this.expenses    = [];

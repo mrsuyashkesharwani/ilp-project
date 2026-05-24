@@ -22,4 +22,5 @@ export interface WellnessData {
   totalIncome: number;
   totalExpenses: number;
   totalInvested: number;
+  walletBalance?: number;
 }

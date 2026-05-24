@@ -21,17 +21,15 @@ export class AuthService {
   login(dto: LoginDto): Observable<LoginResponseDto> {
     return this.http.post<LoginResponseDto>(`${BASE}/login`, dto).pipe(
       tap(res => {
-        if (res.status && res.userId) {
-          // TODO: remove this temporary role assignment once backend returns role field
-          // Temporary rule: if email contains 'admin' → assign admin role, else user
-          const role: LoggedInUser['role'] =
-            dto.email.toLowerCase().includes('admin') ? 'admin' : 'user';
+        if (res.status && res.userId && res.token) {
+          const role: LoggedInUser['role'] = (res.role as LoggedInUser['role']) ?? 'user';
 
           const user: LoggedInUser = {
             userId: res.userId,
             name: res.name ?? '',
             email: dto.email,
-            role
+            role,
+            token: res.token
           };
           this.store.setUser(user);
         }
@@ -60,5 +58,9 @@ export class AuthService {
 
   getCurrentUserId(): number {
     return this.store.getUser()?.userId ?? 0;
+  }
+
+  getToken(): string | null {
+    return this.store.getUser()?.token ?? null;
   }
 }

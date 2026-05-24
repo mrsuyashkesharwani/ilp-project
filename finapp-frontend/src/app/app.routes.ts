@@ -4,7 +4,7 @@ import { AdminGuard } from './core/guards/admin.guard';
 import { ShellComponent } from './features/shell/shell.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '', loadComponent: () => import('./features/landing/landing.component').then(m => m.LandingComponent) },
 
   { path: 'login', loadComponent: () => import('./features/auth/login/login.component').then(m => m.LoginComponent) },
   { path: 'register/success', loadComponent: () => import('./features/auth/acknowledgement/acknowledgement.component').then(m => m.AcknowledgementComponent) },

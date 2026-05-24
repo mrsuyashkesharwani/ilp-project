@@ -1,12 +1,8 @@
 package com.example.first.entity;
 
-
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
+import lombok.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Getter
@@ -20,15 +16,15 @@ public class Stock {
     private Long stockId;
 
     private String companyName;
-
-    private Double stockPrice;
-
-    private Double riskPercent;
-
-    private String stockStatus;
-
-    // ================= RELATION =================
-
-
-    // Getter Setter
+    private String symbol;
+    private Double currentPrice;
+    private Double previousPrice;
+    private String riskCategory; // LOW / MEDIUM / HIGH
+    private Double riskPercent; // For compatibility
+    private Double expectedReturn;
+    private Double marketCap;
+    private String sector;
+    private Double volatility;
+    private String stockStatus; // OPEN / CLOSED
+    private LocalDateTime lastUpdated;
 }

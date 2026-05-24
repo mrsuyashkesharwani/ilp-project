@@ -33,6 +33,12 @@ public class User {
 
     private String password;
 
+    private String role; // ROLE_USER or ROLE_ADMIN
+
+    private Double walletBalance = 0.0;
+
+    private String status; // ACTIVE or BLOCKED
+
     // ================= RELATION =================
 
     @JsonIgnore

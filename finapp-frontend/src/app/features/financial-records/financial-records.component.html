@@ -38,17 +38,7 @@
       style="flex:1;min-width:200px;padding:8px 12px;font-size:13px;border:1px solid rgba(0,0,0,0.12);border-radius:8px;outline:none" />
   </div>
 
-  <!-- Summary row -->
-  <div class="row-2 mb-14">
-    <div class="metric-card">
-      <div class="metric-label">Total income</div>
-      <div class="metric-value green">{{ totalIncome | inr }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Total expenses</div>
-      <div class="metric-value red">{{ totalExpenses | inr }}</div>
-    </div>
-  </div>
+
 
   <!-- Loading -->
   <div *ngIf="loading()" class="empty-state">

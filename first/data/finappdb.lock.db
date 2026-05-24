@@ -1,6 +1,6 @@
 #FileLock
-#Sun May 17 18:15:20 IST 2026
-server=192.168.1.2\:60913
-hostName=Suyash
+#Sat May 23 20:32:41 IST 2026
+server=192.168.1.104\:51604
+hostName=DESKTOP-BOIADLG
 method=file
-id=19e35f8365d7b17469a0fe4a38ee86479bd42bdc36d
+id=19e555c162b3f630902a5157e17015057d43ae37280

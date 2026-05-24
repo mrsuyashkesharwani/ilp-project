@@ -1,6 +1,7 @@
 import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { GoldService } from '../../core/services/gold.service';
 import { AuthService } from '../../core/services/auth.service';
 import { GoldDto } from '../../core/models/gold.model';
@@ -11,12 +12,11 @@ import { EmptyStateComponent } from '../../shared/components/empty-state/empty-s
 @Component({
   selector: 'app-gold',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, InrFormatPipe, MetricCardComponent, EmptyStateComponent],
+  imports: [CommonModule, FormsModule, InrFormatPipe, MetricCardComponent, EmptyStateComponent, RouterLink],
   templateUrl: './gold.component.html',
   styleUrls: ['./gold.component.scss']
 })
 export class GoldComponent implements OnInit, OnDestroy {
-  private fb       = inject(FormBuilder);
   private goldSvc  = inject(GoldService);
   private auth     = inject(AuthService);
 
@@ -25,28 +25,17 @@ export class GoldComponent implements OnInit, OnDestroy {
   saving          = signal(false);
   error           = signal('');
   toast           = signal<{ msg: string; type: 'ok' | 'err' } | null>(null);
-  confirmDeleteId = signal<number | null>(null);
+  insufficientBalanceMsg = signal('');
 
-  goldTypes    = ['Physical', 'Digital', 'ETF', 'SGB'];
-  storageTypes = ['Bank Locker', 'Home', 'Digital'];
+  // Market gold prices
+  marketPrices = signal<{ Digital: number; ETF: number; SGB: number; updatedAt?: string } | null>(null);
+  
+  // Custom dialog state
+  buyType = signal<string | null>(null);
+  buyPrice = signal<number>(0);
+  buyGrams = signal<number | null>(null);
 
-  form = this.fb.group({
-    type:                 ['Physical', Validators.required],
-    quantityGrams:        [null as number | null, [Validators.required, Validators.min(0.1)]],
-    purchasePricePerGram: [null as number | null, [Validators.required, Validators.min(1)]],
-    purchaseDate:         ['', Validators.required],
-    currentPricePerGram:  [null as number | null, [Validators.required, Validators.min(1)]],
-    storageType:          ['Bank Locker', Validators.required],
-    notes:                ['']
-  });
-
-  get qty():    number { return this.form.value.quantityGrams  ?? 0; }
-  get bPrice(): number { return this.form.value.purchasePricePerGram ?? 0; }
-  get cPrice(): number { return this.form.value.currentPricePerGram  ?? 0; }
-  get totalInvestmentPreview(): number { return this.qty * this.bPrice; }
-  get currentValuePreview():    number { return this.qty * this.cPrice; }
-  get pnlPreview():             number { return this.currentValuePreview - this.totalInvestmentPreview; }
-  get pnlPctPreview():          number { return this.totalInvestmentPreview ? (this.pnlPreview / this.totalInvestmentPreview) * 100 : 0; }
+  private intervalId: any;
 
   get metricTotalGrams(): number { return this.holdings().reduce((a, h) => a + h.quantityGrams, 0); }
   get metricInvested():   number { return this.holdings().reduce((a, h) => a + (h.totalInvestment ?? 0), 0); }
@@ -62,55 +51,104 @@ export class GoldComponent implements OnInit, OnDestroy {
     });
   }
 
+  loadMarketPrices(): void {
+    this.goldSvc.getGoldMarketPrices().subscribe({
+      next: (data) => {
+        this.marketPrices.set(data);
+      },
+      error: () => {
+        this.marketPrices.set({
+          Digital: 7200.0,
+          ETF: 7056.0,
+          SGB: 6984.0,
+          updatedAt: new Date().toISOString()
+        });
+      }
+    });
+  }
+
   ngOnInit(): void {
     this.loadData();
+    this.loadMarketPrices();
+    this.intervalId = setInterval(() => this.loadMarketPrices(), 15000);
   }
 
   ngOnDestroy(): void {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
     this.loading.set(true);
     this.holdings.set([]);
     this.error.set('');
   }
 
-  onSave(): void {
-    if (this.form.invalid) return;
-    const v = this.form.value;
+  openBuyDialog(type: string, price: number): void {
+    this.buyType.set(type);
+    this.buyPrice.set(price);
+    this.buyGrams.set(null);
+  }
+
+  closeBuyDialog(): void {
+    this.buyType.set(null);
+  }
+
+  confirmBuy(): void {
+    const grams = this.buyGrams();
+    const type = this.buyType();
+    const price = this.buyPrice();
+    if (!grams || grams <= 0 || !type || !price) return;
+
     this.saving.set(true);
     const dto: GoldDto = {
-      type: v.type!,
-      quantityGrams: v.quantityGrams!,
-      purchasePricePerGram: v.purchasePricePerGram!,
-      currentPricePerGram: v.currentPricePerGram!,
-      storageType: v.storageType!,
-      notes: v.notes ?? undefined,
-      purchaseDate: v.purchaseDate!,
+      type: type,
+      quantityGrams: grams,
+      purchasePricePerGram: price,
+      currentPricePerGram: price,
+      storageType: 'Digital',
+      purchaseDate: new Date().toISOString().split('T')[0],
       userId: this.auth.getCurrentUserId()
     };
+
     this.goldSvc.addGold(dto).subscribe({
       next: () => {
         this.saving.set(false);
-        this.form.reset({ type: 'Physical', storageType: 'Bank Locker' });
-        this.showToast('Gold entry saved!', 'ok');
+        this.closeBuyDialog();
+        this.showToast(`Successfully purchased ${grams}g of ${type} Gold!`, 'ok');
         this.loadData();
       },
-      error: () => { this.saving.set(false); this.showToast('Save failed.', 'err'); }
+      error: (err) => {
+        this.saving.set(false);
+        const msg: string = (typeof err?.error === 'string' ? err.error : null)
+          || err?.error?.message
+          || 'Failed to complete gold purchase.';
+        // Close the dialog FIRST, then show the error on the page
+        this.closeBuyDialog();
+        if (msg.toLowerCase().includes('balance') || msg.toLowerCase().includes('transaction failed')) {
+          this.insufficientBalanceMsg.set(msg);
+        } else {
+          this.showToast(msg, 'err');
+        }
+      }
     });
   }
 
-  askDelete(id: number): void  { this.confirmDeleteId.set(id); }
-  cancelDelete(): void         { this.confirmDeleteId.set(null); }
-
-  doConfirmDelete(): void {
-    const id = this.confirmDeleteId();
-    if (id == null) return;
-    this.goldSvc.deleteGold(id).subscribe({
-      next: () => {
-        this.confirmDeleteId.set(null);
-        this.showToast('Entry deleted.', 'ok');
-        this.loadData();
-      },
-      error: () => { this.confirmDeleteId.set(null); this.showToast('Delete failed.', 'err'); }
-    });
+  sellGold(h: GoldDto): void {
+    if (!h.goldId) return;
+    const confirmMessage = `Are you sure you want to sell your entire holding of ${h.type} Gold (${h.quantityGrams}g) for ₹${h.currentValue}?`;
+    if (confirm(confirmMessage)) {
+      this.saving.set(true);
+      this.goldSvc.deleteGold(h.goldId).subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.showToast(`Successfully sold ${h.quantityGrams}g of ${h.type} Gold! Proceeds added to wallet.`, 'ok');
+          this.loadData();
+        },
+        error: (err) => {
+          this.saving.set(false);
+          this.showToast(err.error || 'Failed to sell gold.', 'err');
+        }
+      });
+    }
   }
 
   private showToast(msg: string, type: 'ok' | 'err'): void {

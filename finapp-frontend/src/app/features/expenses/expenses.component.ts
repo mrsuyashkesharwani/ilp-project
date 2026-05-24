@@ -79,7 +79,7 @@ export class ExpensesComponent implements OnInit {
 
   loadSummary(): void {
     const userId = this.auth.getCurrentUserId();
-    const INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Rental', 'Other'];
+    const INCOME_CATS = ['Salary', 'Freelance', 'Business', 'Rental', 'Other', 'Stock_Sale'];
     const INVESTMENT_CATS_LOWER = ['stock', 'invest', 'gold', 'etf', 'sgb', 'mutualfund'];
 
     this.expenseService.getExpensesByUser(userId).subscribe({
@@ -88,7 +88,7 @@ export class ExpensesComponent implements OnInit {
         this.totalIncome.set(
           records
             .filter(e => INCOME_CATS.includes(e.category ?? ''))
-            .reduce((s, e) => s + e.amount, 0)
+            .reduce((s, e) => s + (e.profit != null ? e.profit : e.amount), 0)
         );
         this.totalExpenses.set(
           records

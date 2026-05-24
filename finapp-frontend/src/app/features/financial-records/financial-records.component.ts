@@ -63,7 +63,7 @@ export class FinancialRecordsComponent implements OnInit {
   }
 
   get totalIncome(): number {
-    return this.allRecords.filter(e => this.isIncome(e)).reduce((s, e) => s + (e.amount ?? 0), 0);
+    return this.allRecords.filter(e => this.isIncome(e)).reduce((s, e) => s + (e.profit != null ? e.profit : (e.amount ?? 0)), 0);
   }
   get totalExpenses(): number {
     return this.allRecords

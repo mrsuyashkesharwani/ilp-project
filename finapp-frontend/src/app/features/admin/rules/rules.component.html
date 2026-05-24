@@ -1,4 +1,15 @@
 <div class="page-content">
+
+  <!-- Toast feedback -->
+  <div *ngIf="toast()" 
+       style="position:fixed;top:20px;right:20px;z-index:9999;
+              background:#10b981;color:white;padding:12px 20px;
+              border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.3);
+              display:flex;align-items:center;gap:8px;font-weight:500;">
+    <i class="ti ti-check" style="font-size:18px"></i>
+    <span>{{ toast()!.msg }}</span>
+  </div>
+
   <div class="flex-between mb-20">
     <div><h1>Rules & thresholds</h1><p>Configure alert rules for all users.</p></div>
     <button class="btn btn-primary btn-sm" (click)="saveAll()">

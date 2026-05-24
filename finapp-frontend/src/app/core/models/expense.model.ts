@@ -7,6 +7,7 @@ export interface ExpenseDto {
   category: string;
   expenseDate: string; // YYYY-MM-DD
   userId: number;
+  profit?: number;
 }
 
 export interface FinancialRecord {
@@ -17,6 +18,7 @@ export interface FinancialRecord {
   expenseDate: string;
   userId: number;
   type?: EntryType;
+  profit?: number;
 }
 
 export const INCOME_SOURCES = ['Salary', 'Freelance', 'Business', 'Rental', 'Other'];

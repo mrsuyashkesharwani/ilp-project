@@ -2,6 +2,7 @@ package com.example.first.controller;
 
 import com.example.first.Dto.*;
 import com.example.first.entity.Expense;
+import com.example.first.repo.StockRepo;
 import com.example.first.service.StudentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class FinicialController {
 
     private final StudentService studentService;
+    private final StockRepo stockRepo;
 
     @PostMapping("/user")
     public ResponseEntity<?> createUser(@RequestBody UserDto dto) {
@@ -123,6 +125,38 @@ public class FinicialController {
     @GetMapping("/wellness/{userId}")
     public ResponseEntity<?> getWellness(@PathVariable Long userId) {
         try { return ResponseEntity.ok(studentService.getWellnessScore(userId)); }
+        catch (Exception e) { return ResponseEntity.status(500).body(e.getMessage()); }
+    }
+
+    @GetMapping("/stocks")
+    public ResponseEntity<?> getAllStocks() {
+        try { return ResponseEntity.ok(stockRepo.findAll()); }
+        catch (Exception e) { return ResponseEntity.status(500).body(e.getMessage()); }
+    }
+
+    @GetMapping("/recommend")
+    public ResponseEntity<?> getRecommendations(
+            @RequestParam Double amount,
+            @RequestParam String risk) {
+        try { return ResponseEntity.ok(studentService.getRecommendations(amount, risk)); }
+        catch (Exception e) { return ResponseEntity.status(500).body(e.getMessage()); }
+    }
+
+    @GetMapping("/gold/prices")
+    public ResponseEntity<?> getGoldMarketPrices() {
+        try { return ResponseEntity.ok(studentService.getGoldMarketPrices()); }
+        catch (Exception e) { return ResponseEntity.status(500).body(e.getMessage()); }
+    }
+
+    @GetMapping("/risk/{userId}")
+    public ResponseEntity<?> getRiskProfile(@PathVariable Long userId) {
+        try { return ResponseEntity.ok(studentService.getRiskProfile(userId)); }
+        catch (Exception e) { return ResponseEntity.status(500).body(e.getMessage()); }
+    }
+
+    @GetMapping("/wallet/{userId}")
+    public ResponseEntity<?> getWalletBalance(@PathVariable Long userId) {
+        try { return ResponseEntity.ok(studentService.getWalletBalance(userId)); }
         catch (Exception e) { return ResponseEntity.status(500).body(e.getMessage()); }
     }
 }

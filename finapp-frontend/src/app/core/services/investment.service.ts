@@ -33,4 +33,8 @@ export class InvestmentService {
   sellStock(dto: SellStockDto): Observable<InvestmentDto> {
     return this.http.post<InvestmentDto>(`${BASE}/investment/sell`, dto);
   }
+
+  getRiskProfile(userId: number): Observable<any> {
+    return this.http.get<any>(`${BASE}/risk/${userId}`);
+  }
 }

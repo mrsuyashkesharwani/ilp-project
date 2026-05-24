@@ -46,7 +46,7 @@
 
         <div class="form-group">
           <label>Amount (₹) *</label>
-          <input type="number" formControlName="amount" placeholder="e.g. 5000" min="1" />
+          <input type="number" formControlName="amount" placeholder="e.g. 15000" min="1" />
           <span class="form-error" *ngIf="form.get('amount')?.invalid && form.get('amount')?.touched">
             Enter a valid positive amount.
           </span>

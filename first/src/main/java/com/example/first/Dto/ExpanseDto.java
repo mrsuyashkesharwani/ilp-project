@@ -10,7 +10,6 @@ import java.time.LocalDate;
 @Getter
 @Setter
 @NoArgsConstructor
-@AllArgsConstructor
 public class ExpanseDto {
 
 
@@ -28,5 +27,26 @@ public class ExpanseDto {
 
     // User id for relation
     private Long userId;
+
+    private Double profit;
+
+    public ExpanseDto(Long expenseId, String title, Double amount, String category, LocalDate expenseDate, Long userId) {
+        this.expenseId = expenseId;
+        this.title = title;
+        this.amount = amount;
+        this.category = category;
+        this.expenseDate = expenseDate;
+        this.userId = userId;
+    }
+
+    public ExpanseDto(Long expenseId, String title, Double amount, String category, LocalDate expenseDate, Long userId, Double profit) {
+        this.expenseId = expenseId;
+        this.title = title;
+        this.amount = amount;
+        this.category = category;
+        this.expenseDate = expenseDate;
+        this.userId = userId;
+        this.profit = profit;
+    }
 
 }

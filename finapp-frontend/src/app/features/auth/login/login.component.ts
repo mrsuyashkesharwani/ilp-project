@@ -79,7 +79,7 @@ export class LoginComponent {
     if (this.registerForm.invalid) return;
     const v = this.registerForm.value;
     this.loading.set(true);
-    this.auth.register({ name: v.name!, email: v.email!, password: v.password! }).subscribe({
+    this.auth.register({ name: v.name!, email: v.email!, password: v.password!, mobileNo: (v.countryCode ?? '+91') + v.mobile! }).subscribe({
       next: () => {
         this.loading.set(false);
         this.router.navigate(['/register/success'], {

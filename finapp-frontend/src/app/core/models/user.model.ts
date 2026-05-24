@@ -2,7 +2,7 @@ export interface UserDto {
   name: string;
   email: string;
   password: string;
-  // TODO: add username, mobileNo, address when backend UserDto is updated
+  mobileNo: string;
 }
 
 export interface LoginDto {
@@ -15,7 +15,8 @@ export interface LoginResponseDto {
   userId: number | null;
   name: string | null;
   message: string;
-  role?: 'user' | 'admin' | 'superadmin'; // TODO: add role field to backend LoginResponseDto
+  token?: string;
+  role?: 'user' | 'admin' | 'superadmin';
 }
 
 export interface LoggedInUser {
@@ -23,4 +24,5 @@ export interface LoggedInUser {
   name: string;
   email: string;
   role: 'user' | 'admin' | 'superadmin';
+  token: string;
 }

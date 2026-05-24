@@ -25,7 +25,7 @@
         <input type="number"
                [value]="updateAmount()"
                (input)="updateAmount.set(+$any($event.target).value)"
-               placeholder="e.g. 5000"
+               placeholder="e.g. 10000"
                min="1" />
       </div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
@@ -61,7 +61,7 @@
       <div class="form-row-2">
         <div class="form-group">
           <label>Goal name *</label>
-          <input type="text" formControlName="name" placeholder="e.g. House fund" />
+          <input type="text" formControlName="name" placeholder="e.g. Retirement Fund or Dream Home" />
           <span class="form-error"
                 *ngIf="addForm.get('name')?.invalid && addForm.get('name')?.touched">
             Name is required (min 2 chars).
@@ -69,7 +69,7 @@
         </div>
         <div class="form-group">
           <label>Target amount (₹) *</label>
-          <input type="number" formControlName="targetAmount" placeholder="e.g. 200000" min="1" />
+          <input type="number" formControlName="targetAmount" placeholder="e.g. 500000" min="1" />
           <span class="form-error"
                 *ngIf="addForm.get('targetAmount')?.invalid && addForm.get('targetAmount')?.touched">
             Enter a valid amount.
